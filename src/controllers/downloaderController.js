@@ -7,41 +7,41 @@ export const downloadVideo = async (req, res) => {
     if (!url) return res.status(400).json({ error: "No URL provided" });
 
     const platform = identifyPlatform(url);
-    let apiURL;
     let response;
     let videoUrl = "";
 
     switch (platform) {
       case "tiktok":
-        apiURL = `https://tiktok-download-video1.p.rapidapi.com/video?url=${encodeURIComponent(
-          url
-        )}`;
-        response = await axios.get(apiURL, {
-          headers: {
-            "X-RapidAPI-Key": process.env.RAPID_API_KEY,
-            "X-RapidAPI-Host": "tiktok-download-video1.p.rapidapi.com",
-          },
-        });
-        videoUrl = response.data?.data?.playUrl || ""; // Extract video URL
+        response = await axios.get(
+          `https://tiktok-download-video1.p.rapidapi.com/video?url=${encodeURIComponent(url)}`,
+          {
+            headers: {
+              "X-RapidAPI-Key": process.env.RAPID_API_KEY,
+              "X-RapidAPI-Host": "tiktok-download-video1.p.rapidapi.com",
+            },
+          }
+        );
+        // TikTok API sometimes nests differently
+        videoUrl = response.data?.data?.playUrl || response.data?.playUrl || "";
         break;
 
       case "instagram":
-        apiURL = `https://instagram-reels-downloader-api.p.rapidapi.com/download?url=${encodeURIComponent(
-          url
-        )}`;
-        response = await axios.get(apiURL, {
-          headers: {
-            "X-RapidAPI-Key": process.env.RAPID_API_KEY,
-            "X-RapidAPI-Host": "instagram-reels-downloader-api.p.rapidapi.com",
-          },
-        });
-        videoUrl = response.data?.videoUrl || "";
+        response = await axios.get(
+          `https://instagram-reels-downloader-api.p.rapidapi.com/download?url=${encodeURIComponent(url)}`,
+          {
+            headers: {
+              "X-RapidAPI-Key": process.env.RAPID_API_KEY,
+              "X-RapidAPI-Host": "instagram-reels-downloader-api.p.rapidapi.com",
+            },
+          }
+        );
+        // Instagram video URL key may differ
+        videoUrl = response.data?.video || response.data?.videoUrl || "";
         break;
 
       case "facebook":
-        apiURL = `https://facebook-media-downloader1.p.rapidapi.com/get_media`;
         response = await axios.post(
-          apiURL,
+          "https://facebook-media-downloader1.p.rapidapi.com/get_media",
           { url },
           {
             headers: {
@@ -51,14 +51,16 @@ export const downloadVideo = async (req, res) => {
             },
           }
         );
-        videoUrl = response.data?.mediaUrl || "";
+        videoUrl = response.data?.mediaUrl || response.data?.url || "";
         break;
 
       default:
         return res.status(400).json({ error: "Unsupported platform" });
     }
 
-    if (!videoUrl) return res.status(500).json({ error: "No video found" });
+    if (!videoUrl) {
+      return res.status(404).json({ error: "No video found for this URL" });
+    }
 
     res.json({
       platform,
@@ -66,7 +68,7 @@ export const downloadVideo = async (req, res) => {
       data: { videoUrl },
     });
   } catch (error) {
-    console.error("Download error:", error.message);
+    console.error("Download error:", error.response?.data || error.message);
     res.status(500).json({ error: "Failed to fetch video data" });
   }
 };
