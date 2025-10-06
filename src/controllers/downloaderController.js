@@ -29,8 +29,13 @@ export const downloadVideo = async (req, res) => {
       status: response.data.status || "success",
       data: response.data.data,
     });
-  } catch (error) {
-    console.error("Download error:", error.response?.data || error.message);
-    res.status(500).json({ error: "Failed to fetch video data" });
-  }
+ } catch (error) {
+  console.error("Download error details:", {
+    message: error.message,
+    status: error.response?.status,
+    data: error.response?.data,
+  });
+  res.status(500).json({ error: "Failed to fetch video data" });
+}
+
 };
