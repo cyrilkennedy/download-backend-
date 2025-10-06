@@ -9,39 +9,61 @@ export const downloadVideo = async (req, res) => {
     const platform = identifyPlatform(url);
     let apiURL;
     let response;
+    let videoUrl = "";
 
     switch (platform) {
       case "tiktok":
-        apiURL = `https://tiktok-download-video1.p.rapidapi.com/photoSearch?keywords=${encodeURIComponent(
-          "video"
-        )}&region=US`;
+        apiURL = `https://tiktok-download-video1.p.rapidapi.com/video?url=${encodeURIComponent(
+          url
+        )}`;
         response = await axios.get(apiURL, {
           headers: {
             "X-RapidAPI-Key": process.env.RAPID_API_KEY,
             "X-RapidAPI-Host": "tiktok-download-video1.p.rapidapi.com",
           },
         });
+        videoUrl = response.data?.data?.playUrl || ""; // Extract video URL
         break;
 
       case "instagram":
-      case "facebook":
-        apiURL = `https://social-media-video-downloader.p.rapidapi.com/youtube/v3/playlist?playlistId=PL970B66C256FA05E1`;
+        apiURL = `https://instagram-reels-downloader-api.p.rapidapi.com/download?url=${encodeURIComponent(
+          url
+        )}`;
         response = await axios.get(apiURL, {
           headers: {
             "X-RapidAPI-Key": process.env.RAPID_API_KEY,
-            "X-RapidAPI-Host": "social-media-video-downloader.p.rapidapi.com",
+            "X-RapidAPI-Host": "instagram-reels-downloader-api.p.rapidapi.com",
           },
         });
+        videoUrl = response.data?.videoUrl || "";
+        break;
+
+      case "facebook":
+        apiURL = `https://facebook-media-downloader1.p.rapidapi.com/get_media`;
+        response = await axios.post(
+          apiURL,
+          { url },
+          {
+            headers: {
+              "X-RapidAPI-Key": process.env.RAPID_API_KEY,
+              "X-RapidAPI-Host": "facebook-media-downloader1.p.rapidapi.com",
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        videoUrl = response.data?.mediaUrl || "";
         break;
 
       default:
         return res.status(400).json({ error: "Unsupported platform" });
     }
 
+    if (!videoUrl) return res.status(500).json({ error: "No video found" });
+
     res.json({
       platform,
       status: "success",
-      data: response.data,
+      data: { videoUrl },
     });
   } catch (error) {
     console.error("Download error:", error.message);
