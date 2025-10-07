@@ -1,7 +1,7 @@
 import axios from "axios";
 import https from "https";
 
-// Helper: detect platform
+// 🔹 Helper: detect platform
 const identifyPlatform = (url) => {
   if (url.includes("tiktok.com")) return "tiktok";
   if (url.includes("instagram.com")) return "instagram";
@@ -11,7 +11,7 @@ const identifyPlatform = (url) => {
   return "unknown";
 };
 
-// 🟢 STEP 1: Fetch metadata
+// 🟢 STEP 1: Fetch metadata (RapidAPI)
 export const downloadVideo = async (req, res) => {
   const { url } = req.body;
   if (!url) return res.status(400).json({ error: "No URL provided" });
@@ -60,10 +60,11 @@ export const downloadVideo = async (req, res) => {
   }
 };
 
-// 🟢 STEP 2: Stream + force download
+// 🟢 STEP 2A: Stream video (works in browser)
 export const streamDownload = async (req, res) => {
   const { videoUrl, title = "video" } = req.query;
-  if (!videoUrl) return res.status(400).json({ error: "No video URL provided" });
+  if (!videoUrl)
+    return res.status(400).json({ error: "No video URL provided" });
 
   try {
     res.setHeader(
@@ -76,5 +77,28 @@ export const streamDownload = async (req, res) => {
   } catch (err) {
     console.error("❌ Stream Error:", err);
     res.status(500).json({ error: "Failed to stream video for download" });
+  }
+};
+
+// 🟢 STEP 2B: Axios-powered download (for CORS-safe fetch)
+export const proxyDownload = async (req, res) => {
+  try {
+    const { url } = req.body;
+    if (!url) return res.status(400).json({ error: "No video URL provided" });
+
+    const response = await axios.get(url, {
+      responseType: "arraybuffer",
+      headers: { "User-Agent": "Mozilla/5.0" },
+    });
+
+    res.setHeader("Content-Type", "video/mp4");
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=tiktok_video.mp4"
+    );
+    res.send(response.data);
+  } catch (error) {
+    console.error("Download error:", error.message);
+    res.status(500).json({ error: "Failed to download video" });
   }
 };
