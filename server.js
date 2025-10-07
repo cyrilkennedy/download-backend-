@@ -1,12 +1,23 @@
 import express from "express";
-import { downloadVideo, streamDownload } from "../controllers/downloadController.js";
+import cors from "cors";
+import dotenv from "dotenv";
+import downloaderRoutes from "./src/routes/downloaderRoutes.js";
 
-const router = express.Router();
+dotenv.config();
+const app = express();
 
-// Step 1: Get video info (used in Step1Paste.jsx)
-router.post("/fetch", downloadVideo);
+app.use(cors());
+app.use(express.json());
 
-// Step 2: Force file download through backend
-router.get("/download", streamDownload);
+app.use("/api", downloaderRoutes);
 
-export default router;
+app.get("/", (req, res) => {
+  res.send("📦 Video Downloader Backend Running...");
+});
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+
+console.log("TikTok Host:", process.env.RAPID_TIKTOK_HOST);
+console.log("IG $:", process.env.RAPID_SOCIAL_HOST);
+console.log("X Host:", process.env.RAPID_X_HOST);
