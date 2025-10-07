@@ -1,6 +1,7 @@
 import axios from "axios";
+import https from "https";
 
-// Auto-detect platform
+// Helper: detect platform
 const identifyPlatform = (url) => {
   if (url.includes("tiktok.com")) return "tiktok";
   if (url.includes("instagram.com")) return "instagram";
@@ -10,12 +11,10 @@ const identifyPlatform = (url) => {
   return "unknown";
 };
 
+// 🟢 STEP 1: Fetch metadata
 export const downloadVideo = async (req, res) => {
   const { url } = req.body;
-
   if (!url) return res.status(400).json({ error: "No URL provided" });
-
-  const platform = identifyPlatform(url);
 
   const options = {
     method: "POST",
@@ -39,32 +38,43 @@ export const downloadVideo = async (req, res) => {
       });
     }
 
-    // Extract clean info
-    const title = data.title || "Untitled";
-    const thumbnail =
-      data.thumbnail ||
-      data.medias?.[0]?.thumbnail ||
-      data.medias?.[0]?.url ||
-      "";
+    const title = data.title || "video";
     const videoUrl =
       data.medias?.find((m) => m.type === "video")?.url ||
-      data.medias?.[0]?.url ||
-      "";
+      data.medias?.[0]?.url;
 
     res.json({
       status: "success",
-      platform,
+      platform: identifyPlatform(url),
       title,
-      thumbnail,
+      thumbnail: data.thumbnail || data.medias?.[0]?.thumbnail || "",
       videoUrl,
     });
   } catch (error) {
-    console.error("❌ API Error:", error.response?.data || error.message);
-
+    console.error("❌ Fetch Error:", error.response?.data || error.message);
     res.status(500).json({
       status: "error",
-      message: "Internal Server Error. Please try again later.",
+      message: "Internal server error while fetching video info.",
       details: error.response?.data || error.message,
     });
+  }
+};
+
+// 🟢 STEP 2: Stream + force download
+export const streamDownload = async (req, res) => {
+  const { videoUrl, title = "video" } = req.query;
+  if (!videoUrl) return res.status(400).json({ error: "No video URL provided" });
+
+  try {
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${title.replace(/[^\w\s]/gi, "")}.mp4"`
+    );
+    res.setHeader("Content-Type", "video/mp4");
+
+    https.get(videoUrl, (stream) => stream.pipe(res));
+  } catch (err) {
+    console.error("❌ Stream Error:", err);
+    res.status(500).json({ error: "Failed to stream video for download" });
   }
 };
