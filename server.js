@@ -1,5 +1,3 @@
-
-
 // 🧩 Imports
 import express from "express";
 import cors from "cors";
@@ -15,10 +13,14 @@ const app = express();
 // 🧠 Global browser instance (reused across requests)
 let browser;
 
-// 🟢 Initialize Playwright once when server starts
+// ✅ Initialize Playwright once when server starts
 async function initPlaywright() {
+  console.log("🚀 Launching Playwright Chromium...");
   try {
-    browser = await chromium.launch({ headless: true });
+    browser = await chromium.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
     console.log("✅ Playwright initialized successfully.");
   } catch (err) {
     console.error("❌ Failed to initialize Playwright:", err.message);
@@ -52,20 +54,6 @@ app.use(
 
 // 🧩 JSON Parser
 app.use(express.json());
-
-// ✅ Initialize Playwright safely
-async function initPlaywright() {
-  console.log("🚀 Launching Playwright Chromium...");
-  try {
-    browser = await chromium.launch({
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"]
-    });
-    console.log("✅ Playwright initialized successfully.");
-  } catch (err) {
-    console.error("❌ Failed to initialize Playwright:", err.message);
-  }
-}
 
 // 🎥 Routes
 app.use("/api", downloaderRoutes);
