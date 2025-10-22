@@ -3,10 +3,30 @@ import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
 import dotenv from "dotenv";
+import { chromium } from "playwright"; // ⬅️ NEW: Preload Playwright
 import downloaderRoutes from "./src/routes/downloaderRoutes.js";
 
 dotenv.config();
 const app = express();
+
+// 🧩 Global browser instance (for efficiency)
+let browser;
+
+// 🟢 Initialize Playwright once when server starts
+async function initPlaywright() {
+  try {
+    browser = await chromium.launch({ headless: true });
+    console.log("✅ Playwright initialized successfully.");
+  } catch (err) {
+    console.error("❌ Failed to initialize Playwright:", err.message);
+  }
+}
+
+// 🧹 Graceful shutdown
+process.on("SIGTERM", async () => {
+  if (browser) await browser.close();
+  process.exit(0);
+});
 
 // 🛡️ Security Middleware
 app.use(
@@ -15,13 +35,13 @@ app.use(
   })
 );
 
-// ⚡ Compress responses for faster load (SEO boost)
+// ⚡ Compress responses for faster load
 app.use(compression());
 
-// 🌍 CORS Setup — allows frontend (React app) to call backend
+// 🌍 CORS Setup
 app.use(
   cors({
-    origin: "*", // You can later replace * with your domain for security
+    origin: "*",
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
@@ -43,13 +63,9 @@ app.get("/", (req, res) => {
   `);
 });
 
-// 🚀 Server Listen
+// 🚀 Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () =>
-  console.log(`✅ Secure server running on port ${PORT}`)
-);
-
-// 🧠 Debug Info
-console.log("TikTok Host:", process.env.RAPID_TIKTOK_HOST);
-console.log("IG Host:", process.env.RAPID_SOCIAL_HOST);
-console.log("X Host:", process.env.RAPID_X_HOST);
+app.listen(PORT, async () => {
+  console.log(`✅ Server running on port ${PORT}`);
+  await initPlaywright();
+});

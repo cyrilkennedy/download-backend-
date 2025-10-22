@@ -1,54 +1,36 @@
-import express from "express";
-import {
-  downloadVideo,
-  streamDownload,
-  proxyDownload,
-} from "../controllers/downloaderController.js";
+import { scrapeTikTok } from "../scrapers/tiktokScraper.js";
+import { scrapeInstagram } from "../scrapers/instagramScraper.js";
+import { scrapeFacebook } from "../scrapers/facebookScraper.js";
+import { scrapeTwitter } from "../scrapers/twitterScraper.js";
 
-const router = express.Router();
+export const downloadVideo = async (req, res) => {
+  const { url } = req.body;
+  if (!url) return res.status(400).json({ error: "No URL provided" });
 
-// ✅ Health check route — confirms backend is alive
-router.get("/", (req, res) => {
-  res.json({ status: "ok", message: "Downloader API running 🚀" });
-});
-
-// ✅ Main route — fetches video metadata
-router.post("/download", async (req, res) => {
   try {
-    await downloadVideo(req, res);
+    let data;
+
+    if (url.includes("tiktok.com")) data = await scrapeTikTok(url);
+    else if (url.includes("instagram.com")) data = await scrapeInstagram(url);
+    else if (url.includes("facebook.com")) data = await scrapeFacebook(url);
+    else if (url.includes("x.com") || url.includes("twitter.com"))
+      data = await scrapeTwitter(url);
+    else
+      return res.status(400).json({ error: "Unsupported platform" });
+
+    if (!data || !data.videoUrl)
+      return res.status(400).json({ error: "Failed to fetch video" });
+
+    res.json({
+      status: "success",
+      ...data,
+    });
   } catch (err) {
-    console.error("❌ Route Error (/download):", err.message);
+    console.error("❌ Scrape error:", err.message);
     res.status(500).json({
       status: "error",
-      message: "Internal server error while fetching metadata",
+      message: "Failed to fetch video data",
+      details: err.message,
     });
   }
-});
-
-// ✅ Stream route — used to directly stream video download
-router.get("/stream", async (req, res) => {
-  try {
-    await streamDownload(req, res);
-  } catch (err) {
-    console.error("❌ Route Error (/stream):", err.message);
-    res.status(500).json({
-      status: "error",
-      message: "Internal server error while streaming video",
-    });
-  }
-});
-
-// ✅ Proxy route — safely downloads the video via backend (fixes CORS)
-router.post("/proxy", async (req, res) => {
-  try {
-    await proxyDownload(req, res);
-  } catch (err) {
-    console.error("❌ Route Error (/proxy):", err.message);
-    res.status(500).json({
-      status: "error",
-      message: "Internal server error while proxy downloading",
-    });
-  }
-});
-
-export default router;
+};
