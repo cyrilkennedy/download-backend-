@@ -1,11 +1,12 @@
 // 🧩 Auto-install Playwright (for Render or fresh servers)
 import { execSync } from "child_process";
+
 try {
-  console.log("🔄 Ensuring Playwright browsers are installed...");
-  execSync("npx playwright install chromium --with-deps", { stdio: "inherit" });
+  console.log("🔄 Installing Playwright Chromium locally...");
+  execSync("npx playwright install chromium", { stdio: "inherit" });
   console.log("✅ Playwright ready!");
 } catch (e) {
-  console.error("⚠️ Failed to auto-install Playwright:", e.message);
+  console.error("⚠️ Playwright install failed (likely missing cache on Render):", e.message);
 }
 
 // 🧩 Imports
