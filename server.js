@@ -1,15 +1,26 @@
+// 🧩 Auto-install Playwright (for Render or fresh servers)
+import { execSync } from "child_process";
+try {
+  console.log("🔄 Ensuring Playwright browsers are installed...");
+  execSync("npx playwright install chromium --with-deps", { stdio: "inherit" });
+  console.log("✅ Playwright ready!");
+} catch (e) {
+  console.error("⚠️ Failed to auto-install Playwright:", e.message);
+}
+
+// 🧩 Imports
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
 import dotenv from "dotenv";
-import { chromium } from "playwright"; // ⬅️ NEW: Preload Playwright
+import { chromium } from "playwright"; // Preload Playwright
 import downloaderRoutes from "./src/routes/downloaderRoutes.js";
 
 dotenv.config();
 const app = express();
 
-// 🧩 Global browser instance (for efficiency)
+// 🧠 Global browser instance (reused across requests)
 let browser;
 
 // 🟢 Initialize Playwright once when server starts
@@ -22,7 +33,7 @@ async function initPlaywright() {
   }
 }
 
-// 🧹 Graceful shutdown
+// 🧹 Graceful shutdown (Render-friendly)
 process.on("SIGTERM", async () => {
   if (browser) await browser.close();
   process.exit(0);
@@ -31,11 +42,11 @@ process.on("SIGTERM", async () => {
 // 🛡️ Security Middleware
 app.use(
   helmet({
-    crossOriginResourcePolicy: false, // allows images & media to load across origins
+    crossOriginResourcePolicy: false,
   })
 );
 
-// ⚡ Compress responses for faster load
+// ⚡ Compression
 app.use(compression());
 
 // 🌍 CORS Setup
@@ -47,10 +58,10 @@ app.use(
   })
 );
 
-// 🧩 Parse JSON
+// 🧩 JSON Parser
 app.use(express.json());
 
-// 🎥 API Routes
+// 🎥 Routes
 app.use("/api", downloaderRoutes);
 
 // 🌐 Root Route
@@ -63,9 +74,9 @@ app.get("/", (req, res) => {
   `);
 });
 
-// 🚀 Start server
+// 🚀 Start Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, async () => {
   console.log(`✅ Server running on port ${PORT}`);
-  await initPlaywright();
+  await initPlaywright(); // Initialize browser here
 });
