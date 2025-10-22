@@ -1,9 +1,9 @@
-import { scrapeTikTok } from "../scrapers/tiktokScraper.js";
-import { scrapeInstagram } from "../scrapers/instagramScraper.js";
-import { scrapeFacebook } from "../scrapers/facebookScraper.js";
-import { scrapeTwitter } from "../scrapers/twitterScraper.js";
+import { scrapeTikTok } from "../scrappers/tiktokScraper.js";
+import { scrapeInstagram } from "../scrappers/instagramScraper.js";
+import { scrapeFacebook } from "../scrappers/facebookScraper.js";
+import { scrapeTwitter } from "../scrappers/twitterScraper.js";
 
-export const downloadVideo = async (req, res) => {
+const downloaderRoutes = async (req, res) => {
   const { url } = req.body;
   if (!url) return res.status(400).json({ error: "No URL provided" });
 
@@ -34,3 +34,6 @@ export const downloadVideo = async (req, res) => {
     });
   }
 };
+
+export default downloaderRoutes;
+
