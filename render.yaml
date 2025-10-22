@@ -3,10 +3,8 @@ services:
     name: video-downloader-backend
     env: node
     plan: free
-    buildCommand: |
-      npm install
-      npx playwright install chromium 
-    startCommand: npm start
+    buildCommand: npm install
+    startCommand: npm run start:prod
     envVars:
       - key: NODE_ENV
         value: production
