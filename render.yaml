@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: video-downloader-backend
+    env: node
+    plan: free
+    buildCommand: |
+      npx playwright install chromium --with-deps
+      npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+    autoDeploy: true
+    healthCheckPath: /health

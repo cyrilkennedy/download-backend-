@@ -1,13 +1,4 @@
 // 🧩 Auto-install Playwright (for Render or fresh servers)
-import { execSync } from "child_process";
-
-try {
-  console.log("🔄 Installing Playwright Chromium locally...");
-  execSync("npx playwright install chromium", { stdio: "inherit" });
-  console.log("✅ Playwright ready!");
-} catch (e) {
-  console.error("⚠️ Playwright install failed (likely missing cache on Render):", e.message);
-}
 
 // 🧩 Imports
 import express from "express";
@@ -61,6 +52,20 @@ app.use(
 
 // 🧩 JSON Parser
 app.use(express.json());
+
+// ✅ Initialize Playwright safely
+async function initPlaywright() {
+  console.log("🚀 Launching Playwright Chromium...");
+  try {
+    browser = await chromium.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"]
+    });
+    console.log("✅ Playwright initialized successfully.");
+  } catch (err) {
+    console.error("❌ Failed to initialize Playwright:", err.message);
+  }
+}
 
 // 🎥 Routes
 app.use("/api", downloaderRoutes);
