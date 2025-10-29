@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import {
   downloadVideo,
   streamDownload,
@@ -6,6 +7,16 @@ import {
 } from "../controllers/downloaderController.js";
 
 const router = express.Router();
+
+// ✅ Apply CORS to all routes in this router
+router.use(cors({
+  origin: "*",
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
+
+// ✅ Handle preflight requests (important for POST)
+router.options("*", cors());
 
 // ✅ Health check route — confirms backend is alive
 router.get("/", (req, res) => {
@@ -38,18 +49,12 @@ router.get("/stream", async (req, res) => {
   }
 });
 
-// ✅ Proxy route — safely downloads the video via backend (fixes CORS)
-// Backend: routes/download.js or wherever your routes are
-
-// 🟢 Proxy download route
+// ✅ Proxy download route
 router.post("/proxy", async (req, res) => {
   try {
     await proxyDownload(req, res);
   } catch (err) {
     console.error("❌ Route Error (/proxy):", err.message);
-    console.error("❌ Full Error:", err);
-    
-    // Only send error if headers not sent yet
     if (!res.headersSent) {
       res.status(500).json({
         status: "error",
@@ -59,6 +64,5 @@ router.post("/proxy", async (req, res) => {
     }
   }
 });
-
 
 export default router;
