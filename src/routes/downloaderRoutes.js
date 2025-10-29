@@ -39,16 +39,26 @@ router.get("/stream", async (req, res) => {
 });
 
 // ✅ Proxy route — safely downloads the video via backend (fixes CORS)
+// Backend: routes/download.js or wherever your routes are
+
+// 🟢 Proxy download route
 router.post("/proxy", async (req, res) => {
   try {
     await proxyDownload(req, res);
   } catch (err) {
     console.error("❌ Route Error (/proxy):", err.message);
-    res.status(500).json({
-      status: "error",
-      message: "Internal server error while proxy downloading",
-    });
+    console.error("❌ Full Error:", err);
+    
+    // Only send error if headers not sent yet
+    if (!res.headersSent) {
+      res.status(500).json({
+        status: "error",
+        message: "Internal server error while proxy downloading",
+        details: err.message
+      });
+    }
   }
 });
+
 
 export default router;
