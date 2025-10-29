@@ -1,7 +1,5 @@
 import express from "express";
 import cors from "cors";
-import express from "express";
-import cors from "cors";
 import { downloadVideo, streamDownload, proxyDownload } from "../controllers/downloaderController.js";
 
 const router = express.Router();
@@ -65,7 +63,7 @@ router.post("/proxy", async (req, res) => {
       res.status(500).json({
         status: "error",
         message: "Internal server error while proxy downloading",
-        details: err.message
+        details: err.message,
       });
     }
   }
