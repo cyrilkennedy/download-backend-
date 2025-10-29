@@ -81,7 +81,7 @@ export const streamDownload = async (req, res) => {
 };
 
 // 🟢 STEP 2B: Axios-powered download (for CORS-safe fetch)// Backend: controllers/downloadController.js or services/proxyService.js
-import axios from 'axios';
+
 
 // 🟢 Axios-powered download (for CORS-safe fetch)
 export const proxyDownload = async (req, res) => {
