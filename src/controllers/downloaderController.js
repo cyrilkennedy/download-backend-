@@ -84,6 +84,7 @@ export const streamDownload = async (req, res) => {
 
 
 // 🟢 Axios-powered download (for CORS-safe fetch)
+// 🟢 Axios-powered proxy with STREAMING (avoids buffering large files)
 export const proxyDownload = async (req, res) => {
   try {
     const { url } = req.body;
@@ -99,29 +100,43 @@ export const proxyDownload = async (req, res) => {
 
     console.log('📡 Proxying video from:', url);
 
-    // Fetch video with timeout
+    // Fetch video as stream
     const response = await axios.get(url, {
-      responseType: "arraybuffer",
+      responseType: "stream",  // ✅ Key change: stream instead of arraybuffer
       headers: { 
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Referer": new URL(url).origin
+        "Referer": new URL(url).origin,
+        "Accept": "*/*"  // Add for better compatibility
       },
-      timeout: 60000, // 60 second timeout
+      timeout: 120000,  // ✅ Increase to 120s for larger videos
       maxRedirects: 5
     });
 
-    console.log('✅ Video fetched successfully, size:', response.data.length);
+    console.log('✅ Video stream started, size:', response.headers['content-length'] || 'unknown');
 
-    // Set response headers
-    res.setHeader("Content-Type", "video/mp4");
+    // Set response headers from source (dynamic Content-Type)
+    res.setHeader("Content-Type", response.headers['content-type'] || "video/mp4");
     res.setHeader("Content-Disposition", "attachment; filename=video.mp4");
-    res.setHeader("Content-Length", response.data.length);
+    if (response.headers['content-length']) {
+      res.setHeader("Content-Length", response.headers['content-length']);
+    }
     res.setHeader("Access-Control-Allow-Origin", "*");
-    
-    // Send video data
-    res.send(response.data);
-    
-    console.log('✅ Video sent to client');
+
+    // Pipe the stream to response
+    response.data.pipe(res);
+
+    // Handle stream errors
+    response.data.on('error', (err) => {
+      console.error('❌ Stream error:', err.message);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Stream failed' });
+      }
+    });
+
+    // Log completion
+    res.on('finish', () => {
+      console.log('✅ Video stream completed');
+    });
     
   } catch (error) {
     console.error("❌ Download error:", error.message);
@@ -140,8 +155,15 @@ export const proxyDownload = async (req, res) => {
         error: "No response from video source",
         details: error.message
       });
+    } else if (error.code === 'ECONNABORTED') {
+      // Timeout
+      console.error("❌ Timeout error");
+      return res.status(408).json({ 
+        error: "Request timeout - video may be too large",
+        details: error.message
+      });
     } else {
-      // Something else went wrong
+      // Something else
       console.error("❌ Unknown error:", error);
       return res.status(500).json({ 
         error: "Failed to download video",
