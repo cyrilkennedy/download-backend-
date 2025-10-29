@@ -1,28 +1,33 @@
 import express from "express";
 import cors from "cors";
-import {
-  downloadVideo,
-  streamDownload,
-  proxyDownload,
-} from "../controllers/downloaderController.js";
+import express from "express";
+import cors from "cors";
+import { downloadVideo, streamDownload, proxyDownload } from "../controllers/downloaderController.js";
 
 const router = express.Router();
 
-// ✅ Apply CORS to all routes in this router
+// ✅ Apply CORS globally
 router.use(cors({
   origin: "*",
   methods: ["GET", "POST", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
 
-// ✅ Optional: this is safe now
-router.options("/*", cors());
+// ✅ Safe preflight handler for Express 5
+router.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    return res.sendStatus(204);
+  }
+  next();
+});
 
-// ✅ Health check route
+// ✅ Health check
 router.get("/", (req, res) => {
   res.json({ status: "ok", message: "Downloader API running 🚀" });
 });
-
 
 // ✅ Main route — fetches video metadata
 router.post("/download", async (req, res) => {
