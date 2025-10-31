@@ -1,15 +1,72 @@
 import express from "express";
-import { downloadVideo, proxyDownload } from "../controllers/downloaderController.js";
+import cors from "cors";
+import { downloadVideo, streamDownload, proxyDownload } from "../controllers/downloaderController.js";
 
 const router = express.Router();
 
-// Health
-router.get("/", (req, res) => res.json({ status: "ok" }));
+// ✅ Apply CORS globally
+router.use(cors({
+  origin: "*",
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
 
-// Metadata
-router.post("/download", downloadVideo);
+// ✅ Safe preflight handler for Express 5
+router.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    return res.sendStatus(204);
+  }
+  next();
+});
 
-// Proxy download
-router.post("/proxy", proxyDownload);
+// ✅ Health check
+router.get("/", (req, res) => {
+  res.json({ status: "ok", message: "Downloader API running 🚀" });
+});
+
+// ✅ Main route — fetches video metadata
+router.post("/download", async (req, res) => {
+  try {
+    await downloadVideo(req, res);
+  } catch (err) {
+    console.error("❌ Route Error (/download):", err.message);
+    res.status(500).json({
+      status: "error",
+      message: "Internal server error while fetching metadata",
+    });
+  }
+});
+
+// ✅ Stream route — used to directly stream video download
+router.get("/stream", async (req, res) => {
+  try {
+    await streamDownload(req, res);
+  } catch (err) {
+    console.error("❌ Route Error (/stream):", err.message);
+    res.status(500).json({
+      status: "error",
+      message: "Internal server error while streaming video",
+    });
+  }
+});
+
+// ✅ Proxy download route
+router.post("/proxy", async (req, res) => {
+  try {
+    await proxyDownload(req, res);
+  } catch (err) {
+    console.error("❌ Route Error (/proxy):", err.message);
+    if (!res.headersSent) {
+      res.status(500).json({
+        status: "error",
+        message: "Internal server error while proxy downloading",
+        details: err.message,
+      });
+    }
+  }
+});
 
 export default router;
